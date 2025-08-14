@@ -3,6 +3,8 @@ from .serializers import *
 from rest_framework import status, viewsets, generics
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework.decorators import api_view
+
 
 class RegisterView(generics.CreateAPIView):
     serializer_class = UserProfileSerializer
@@ -36,6 +38,17 @@ class LogoutView(generics.GenericAPIView):
         except Exception:
             return Response({'detail': 'Невалидный токен'}, status=status.HTTP_400_BAD_REQUEST)
 
+
+@api_view(['POST'])
+def verify_reset_code(request):
+    """
+    Проверка кода сброса и установка нового пароля.
+    """
+    serializer = VerifyResetCodeSerializer(data=request.data)
+    if serializer.is_valid():
+        serializer.save()
+        return Response({'message': 'Пароль успешно сброшен.'}, status=status.HTTP_200_OK)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class UserProfileAPIView(generics.ListAPIView):
     queryset = UserProfile.objects.all()

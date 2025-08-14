@@ -1,6 +1,8 @@
 from .views import *
 from rest_framework import routers
 from django.urls import path, include
+from market_app.views import verify_reset_code
+
 
 router = routers.SimpleRouter()
 
@@ -14,6 +16,8 @@ urlpatterns = [
     path('ordering', OrderingAPIView.as_view(), name='ordering_list'),
     path('orderitem', OrderItemAPIView.as_view(), name='orderitem_list'),
     path('review', ReviewAPIView.as_view(), name='review_list'),
+    path('password_reset/', include('django_rest_passwordreset.urls', namespace='password_reset')),
+    path('password_reset/verify_code/', verify_reset_code, name='verify_reset_code'),
 
     path('register/', RegisterView.as_view(), name='register'),
     path('login/', CustomLoginView.as_view(), name='login'),

@@ -14,6 +14,8 @@ from pathlib import Path
 import os
 from dotenv import load_dotenv
 from datetime import timedelta
+from decouple import config  # pip install python-decouple
+
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -46,6 +48,7 @@ INSTALLED_APPS = [
     # 'corsheaders',
     'rest_framework_simplejwt',
     'rest_framework_simplejwt.token_blacklist',  # ОБЯЗАТЕЛЬНО
+    'django_rest_passwordreset',
 ]
 
 MIDDLEWARE = [
@@ -145,3 +148,11 @@ SIMPLE_JWT = {
     'AUTH_TOKEN_CLASSES': ('rest_framework_simplejwt.tokens.AccessToken',),
     'TOKEN_BLACKLIST_ENABLED': True,
 }
+
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = 'kadyroverjan2006@gmail.com'          # твой Gmail
+EMAIL_HOST_PASSWORD = 'upps rxfo fgnj rexa'  # сгенерированный пароль для приложений
+
