@@ -8,7 +8,6 @@ from django_rest_passwordreset.signals import reset_password_token_created
 from django.core.mail import send_mail
 
 
-
 ROLE_CHOICES= (
     ('продавец', 'продавец'),
     ('клиент', 'клиент'),
@@ -16,9 +15,13 @@ ROLE_CHOICES= (
 )
 
 class UserProfile(AbstractUser):
-    role = models.CharField(max_length=32, choices=ROLE_CHOICES, default='buyer')
-    avatar = models.ImageField(upload_to='avatar/')
-    phone_number = PhoneNumberField(default='+996', unique=True)
+    role = models.CharField(max_length=32, choices=ROLE_CHOICES, default='клиент')
+    avatar = models.ImageField(upload_to='avatar/', null=True, blank=True)
+    phone_number = PhoneNumberField(unique=True)
+    address = models.CharField(max_length=120)
+    verification_code = models.CharField(max_length=6, null=True, blank=True)
+
+
 
 @receiver(reset_password_token_created)
 def password_reset_token_created(sender, instance, reset_password_token, *args, **kwargs):
@@ -42,6 +45,8 @@ def password_reset_token_created(sender, instance, reset_password_token, *args, 
     )
 
 
+
+
 class Category(models.Model):
     category_name = models.CharField(max_length=32)
     category_image = models.ImageField(upload_to='category_image/')
@@ -51,7 +56,22 @@ class SubCategory(models.Model):
     subcategory_name = models.CharField(max_length=32)
     subcategory_image = models.ImageField(upload_to='subcategory_image/')
 
+class Store(models.Model):
+    owner = models.ForeignKey(UserProfile, on_delete=models.CASCADE)
+    store_name = models.CharField(max_length=32)
+    category = models.ForeignKey(Category, on_delete=models.CASCADE)
+    subcategory = models.ForeignKey(SubCategory, on_delete=models.CASCADE)
+
+    def __str__(self):
+        return f"{self.store_name} ({self.owner.username})"
+
+
+
+
 class Product(models.Model):
+    store = models.ForeignKey("Store", on_delete=models.CASCADE, related_name="products", null=True, blank=True)
+    subcategory = models.ForeignKey(SubCategory, on_delete=models.CASCADE)
+    category = models.ForeignKey(Category, on_delete=models.CASCADE)
     product_name = models.CharField(max_length=32)
     product_image = models.ImageField(upload_to='product_image/')
     description = models.TextField()
@@ -70,7 +90,6 @@ class Product(models.Model):
 
     def __str__(self):
         return self.product_name
-
 
 class Sale(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='sales')
@@ -95,16 +114,55 @@ class Sale(models.Model):
     def __str__(self):
         return f"{self.product.product_name} - {self.discount_percent}%"
 
+class Favorite(models.Model):
+    user = models.OneToOneField(UserProfile, on_delete=models.CASCADE)
+
+    def __str__(self):
+        return f'{self.user}'
+
+class FavoriteProduct(models.Model):
+    product = models.ForeignKey(Product, on_delete=models.CASCADE)
+    favorite = models.ForeignKey(Favorite, on_delete=models.CASCADE)
+    created_date = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f'{self.product} {self.favorite}'
+
+    class Meta:
+        unique_together = ('product', 'favorite')
+
+
 class Ordering(models.Model):
-    user = models.ForeignKey(UserProfile, on_delete=models.CASCADE)
+    user = models.ForeignKey(UserProfile, on_delete=models.CASCADE, related_name="orders")
     products = models.ManyToManyField(Product, through='OrderItem')
     created_at = models.DateTimeField(auto_now_add=True)
     is_paid = models.BooleanField(default=False)
 
+    delivery_status = models.CharField(
+        max_length=50,
+        choices=[
+            ('В обработке', 'В обработке'),
+            ('В пути', 'В пути'),
+            ('Доставлено', 'Доставлено'),
+        ],
+        default='processing'
+    )
+
+    def __str__(self):
+        return f"Заказ #{self.id} от {self.user.username}"
+
+
 class OrderItem(models.Model):
-    order = models.ForeignKey(Ordering, on_delete=models.CASCADE)
+    order = models.ForeignKey(Ordering, on_delete=models.CASCADE, related_name="items")
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
     quantity = models.PositiveIntegerField(default=1)
+
+    def __str__(self):
+        return f"{self.quantity} x {self.product.product_name}"
+
+    @property
+    def total_price(self):
+        return self.product.price * self.quantity
 
 
 class Cart(models.Model):
@@ -123,22 +181,22 @@ class CartItem(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
     quantity = models.PositiveIntegerField(default=1)
 
-    def __str__(self):
-        return f"{self.quantity} x {self.product.product_name}"
-
     @property
     def total_price(self):
         return self.product.price * self.quantity
+
+    def __str__(self):
+        return f"{self.quantity} x {self.product.product_name}"
 
 class Review(models.Model):
     user = models.ForeignKey(UserProfile, on_delete=models.CASCADE)
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='reviews')
     rating = models.PositiveIntegerField(choices=[(i, str(i)) for i in range(1, 6)], null=True, blank=True, )
     comment = models.TextField(null=True, blank=True)
-    photo1 = models.ImageField(upload_to='photo1/')
-    photo2 = models.ImageField(upload_to='photo2/')
-    photo3 = models.ImageField(upload_to='photo3/')
-    photo4 = models.ImageField(upload_to='photo4/')
+    photo1 = models.ImageField(upload_to='photo1/', null=True, blank=True)
+    photo2 = models.ImageField(upload_to='photo2/', null=True, blank=True)
+    photo3 = models.ImageField(upload_to='photo3/', null=True, blank=True)
+    photo4 = models.ImageField(upload_to='photo4/', null=True, blank=True)
     parent = models.ForeignKey(
         'self', on_delete=models.CASCADE, null=True, blank=True, related_name='replies'
     )
@@ -154,9 +212,15 @@ class Review(models.Model):
         return f"Review by {self.user.username} on {self.product.product_name}"
 
 
+class Receipt(models.Model):
+    order = models.OneToOneField(Ordering, on_delete=models.CASCADE, related_name="receipt")
+    store_name = models.ForeignKey(Store, on_delete=models.CASCADE)
+    purchase_date = models.DateTimeField(auto_now_add=True)
+    delivery_date = models.DateTimeField(auto_now_add=True)
+    total_sum = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    delivery_cost = models.DecimalField(max_digits=10, decimal_places=2, default=0)
 
-
-
-
+    def __str__(self):
+        return f"Чек для заказа #{self.order.id}"
 
 

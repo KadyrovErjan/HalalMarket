@@ -7,3 +7,4 @@ class MarketConfig(AppConfig):
 
     def ready(self):
         from market_app import signals  # Инициализация сигналов
+

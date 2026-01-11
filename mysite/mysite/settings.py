@@ -44,16 +44,21 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'market_app',
+    'rest_framework_swagger',
     'rest_framework',
-    # 'corsheaders',
+    'drf_yasg',
     'rest_framework_simplejwt',
     'rest_framework_simplejwt.token_blacklist',  # ОБЯЗАТЕЛЬНО
     'django_rest_passwordreset',
+    'corsheaders',
+    'django_filters',
+
 ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -139,6 +144,11 @@ MEDIA_URL = '/media/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 AUTH_USER_MODEL = 'market_app.UserProfile'
 
+REST_FRAMEWORK = {
+    'DEFAULT_FILTER_BACKENDS': ['django_filters.rest_framework.DjangoFilterBackend']
+}
+
+
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=300),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
@@ -156,3 +166,29 @@ EMAIL_USE_TLS = True
 EMAIL_HOST_USER = 'kadyroverjan2006@gmail.com'          # твой Gmail
 EMAIL_HOST_PASSWORD = 'upps rxfo fgnj rexa'  # сгенерированный пароль для приложений
 
+
+# Бардык домендерге уруксат берүү (Эгер коопсуздук керек болсо, белгилүү бир доменди гана жазыңыз)
+CORS_ALLOW_ALL_ORIGINS = True
+
+# Же болбосо белгилүү бир домендерге гана уруксат берүү
+CORS_ALLOWED_ORIGINS = [
+    "https://example.com",
+    "https://sub.example.com",
+]
+
+# Уруксат берилген HTTP методдор
+CORS_ALLOW_METHODS = [
+    "GET",
+    "POST",
+    "PUT",
+    "PATCH",
+    "DELETE",
+    "OPTIONS",
+]
+
+# Клиент тараптан уруксат берилген заголовкалар (headers)
+CORS_ALLOW_HEADERS = [
+    "content-type",
+    "authorization",
+    "x-requested-with",
+]
